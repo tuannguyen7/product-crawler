@@ -194,7 +194,14 @@ class CellphoneProductCrawler:
         r = requests.get(link, headers = headers)
         if r.status_code not in (200, 201):
             raise Exception("error getting Cellphone product " + link)
-        matcher = self.PATTERN.search(r.text)
+        text = r.text
+        try:
+            return self._get_price_case1(text)
+        except Exception:
+            return self._get_price_case2(text)
+
+    def _get_price_case1(self, text):
+        matcher = self.PATTERN.search(text)
         if not matcher:
             raise Exception("error getting Cellphone product, not found pattern. Link" + link)
         jsonStr = matcher.group(1).strip()
@@ -202,11 +209,25 @@ class CellphoneProductCrawler:
             jsonStr = jsonStr[:-1]
         jsonConfig = json.loads(jsonStr)
         product_id = jsonConfig["productId"]
-        soup = BeautifulSoup(r.text, 'html.parser')
+        soup = BeautifulSoup(text, 'html.parser')
         original_price_tag = soup.find("span", {"id": f"old-price-{product_id}"})
         sale_price_tag = soup.find("span", {"id": f"product-price-{product_id}"})
         original_price = human_price_to_integer(original_price_tag.text)
         sale_price = human_price_to_integer(sale_price_tag.text)
+        return Product(original_price, sale_price)
+
+    def _get_price_case2(self, text):
+        soup = BeautifulSoup(text, 'html.parser')
+        product_id_tag = soup.find("input", {"id": 'lastProductId'})
+        product_id = product_id_tag["value"]
+        sale_price_tag_id = f'product-price-{product_id}'
+        original_price_tag_id = f'old-price-{product_id}'
+        sale_price_tag = soup.find(id=sale_price_tag_id)
+        original_price_tag = soup.find(id=original_price_tag_id)
+        sale_price = human_price_to_integer(sale_price_tag.text)
+        original_price = sale_price
+        if original_price_tag:
+            original_price = human_price_to_integer(original_price_tag.text)
         return Product(original_price, sale_price)
 
 

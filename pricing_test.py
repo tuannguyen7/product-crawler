@@ -61,7 +61,9 @@ def test_haloshop():
 def test_cellphones():
     link1 = 'https://cellphones.com.vn/loa-bluetooth-jbl-go-2.html'
     link2 = 'https://cellphones.com.vn/xiaomi-redmi-note-9-pro.html'
+    link3 = 'https://cellphones.com.vn/he-thong-wifi-mesh-cho-toan-ngoi-nha-ac1200-deco-m4.html'
     crawler = CellphoneProductCrawler()
     print(crawler.get_price(link1))
     print(crawler.get_price(link2))
+    print(crawler.get_price(link3))
 
