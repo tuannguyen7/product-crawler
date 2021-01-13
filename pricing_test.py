@@ -22,16 +22,12 @@ def test_antien():
 
 
 def test_coroutines_wrapper():
-    asyncio.run(test_hoangha())
+    asyncio.run(test_minhtuan())
 
 
 async def test_coroutines(*tasks):
-    task_queue = []
     starting_time = datetime.datetime.now().timestamp()
-    for task in tasks:
-        task_queue.append(asyncio.create_task(task))
-
-    done = await asyncio.gather(*task_queue)
+    done = await asyncio.gather(tasks)
     for done_task in done:
         print(done_task)
 
@@ -93,6 +89,49 @@ def test_cellphones():
     print(crawler.get_price(link1))
     print(crawler.get_price(link2))
     print(crawler.get_price(link3))
+
+
+async def test_bachlong():
+    link1 = 'https://bachlongmobile.com/ipad-pro-11-inch-2020-1tb-wifi-chinh-hang.html'
+    link2 = 'https://bachlongmobile.com/iphone-7-plus-32gb-moi-99.html'
+
+    crawler = BachLongProductCrawler()
+    task_queue = []
+    task_queue.append(asyncio.create_task(crawler.get_price(link1)))
+    task_queue.append(asyncio.create_task(crawler.get_price(link2)))
+    done = await asyncio.gather(*task_queue)
+    for done_task in done:
+        print(done_task)
+
+
+async def test_didongviet():
+    link1 = 'https://didongviet.vn/samsung-galaxy-note-20-ultra-ban-256gb'
+    link2 = 'https://didongviet.vn/ipad-air-2020-256gb'
+    link3 = 'https://didongviet.vn/ipad-10-2inch-2020-32gb-wifi'
+
+    crawler = DidongvietProductCrawler()
+    task_queue = []
+    task_queue.append(asyncio.create_task(crawler.get_price(link1)))
+    task_queue.append(asyncio.create_task(crawler.get_price(link2)))
+    task_queue.append(asyncio.create_task(crawler.get_price(link3)))
+    done = await asyncio.gather(*task_queue)
+    for done_task in done:
+        print(done_task)
+
+
+async def test_minhtuan():
+    link1 = 'https://minhtuanmobile.com/ipad-pro-11-2020-128gb-wifi-likenew'
+    link2 = 'https://minhtuanmobile.com/iphone-12-pro-max-128gb-chinh-hang'
+    link3 = 'https://minhtuanmobile.com/macbook-pro-13-m1-late-2020-256gb-myd82-myda2-new-seal'
+
+    crawler = MinhTuanMobileProductCrawler()
+    task_queue = []
+    task_queue.append(asyncio.create_task(crawler.get_price(link1)))
+    task_queue.append(asyncio.create_task(crawler.get_price(link2)))
+    task_queue.append(asyncio.create_task(crawler.get_price(link3)))
+    done = await asyncio.gather(*task_queue)
+    for done_task in done:
+        print(done_task)
 
 
 if __name__ == '__main__':
