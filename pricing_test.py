@@ -1,13 +1,16 @@
 from pricing import *
+import datetime
+import asyncio
 
 def test():
+    test_coroutines_wrapper()
     #test_antien()
     #test_hoangha()
     #test_linhanh()
     #test_viettablet()
     #test_ctmobile()
     #test_haloshop()
-    test_cellphones()
+    #test_cellphones()
 
 
 def test_antien():
@@ -18,12 +21,36 @@ def test_antien():
     print(dtgk_crawler.get_price(link2))
 
 
-def test_hoangha():
+def test_coroutines_wrapper():
+    asyncio.run(test_hoangha())
+
+
+async def test_coroutines(*tasks):
+    task_queue = []
+    starting_time = datetime.datetime.now().timestamp()
+    for task in tasks:
+        task_queue.append(asyncio.create_task(task))
+
+    done = await asyncio.gather(*task_queue)
+    for done_task in done:
+        print(done_task)
+
+    ending_time = datetime.datetime.now().timestamp()
+    time_diff = ending_time - starting_time
+    print(f"take {time_diff} s")
+
+
+async def test_hoangha():
     link1 = 'https://hoanghamobile.com/bo-phat-wifi-di-dong-kasda-kw9550-wireless-4g-chinh-hang-p13624.html'
     link2 = 'https://hoanghamobile.com/apple-iphone-12-128gb-chinh-hang-vna-p19301.html'
     crawler = HoangHaProductCrawler()
-    print(crawler.get_price(link1))
-    print(crawler.get_price(link2))
+    task_queue = []
+    task_queue.append(asyncio.create_task(crawler.get_price(link1)))
+    task_queue.append(asyncio.create_task(crawler.get_price(link2)))
+
+    done = await asyncio.gather(*task_queue)
+    for done_task in done:
+        print(done_task)
 
 
 def test_linhanh():
@@ -67,3 +94,6 @@ def test_cellphones():
     print(crawler.get_price(link2))
     print(crawler.get_price(link3))
 
+
+if __name__ == '__main__':
+    test()

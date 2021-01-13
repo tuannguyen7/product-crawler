@@ -1,6 +1,7 @@
 from bs4 import BeautifulSoup
 from abc import ABCMeta, abstractmethod
 from datetime import datetime
+import asyncio
 import requests
 import re
 import logging
@@ -54,7 +55,7 @@ class LoggingListener(CrawlerListener):
 
 class TikiProductCrawler:
     
-    def get_price(self, link: str) -> Product:
+    async def get_price(self, link: str) -> Product:
         matcher = re.search("p(\d+)\.html", link)
         if not matcher:
             for listener in self.listeners:
@@ -75,7 +76,7 @@ class TikiProductCrawler:
 
 class M24hProductCrawler:
 
-    def get_price(self, link: str) -> Product:
+    async def get_price(self, link: str) -> Product:
         r = requests.get(link)
         if r.status_code not in (200, 201):
             raise Exception("error getting 24h product " + link)
@@ -88,7 +89,7 @@ class M24hProductCrawler:
 # Dien thoai gia kho
 class DTGKProductCrawler:
 
-    def get_price(self, link: str) -> Product:
+    async def get_price(self, link: str) -> Product:
         last_part = link.split("/")[-1]
         last_part = last_part.split("?")[0]
         p_link = f'https://api.dienthoaigiakho.vn/api/products/{last_part}'
@@ -105,7 +106,7 @@ class DTGKProductCrawler:
 
 class BaoChauProductCrawler:
 
-    def get_price(self, link: str) -> Product:
+    async def get_price(self, link: str) -> Product:
         r = requests.get(link)
         if r.status_code not in (200, 201):
             raise Exception("error getting BaoChau product " + link)
@@ -136,7 +137,7 @@ class AntienProductCrawler:
     #   </span> 
     # </div>
 
-    def get_price(self, link: str) -> Product:
+    async def get_price(self, link: str) -> Product:
         r = requests.get(link)
         if r.status_code not in (200, 201):
             raise Exception("error getting Antien product " + link)
@@ -153,30 +154,30 @@ class AntienProductCrawler:
 class HoangHaProductCrawler:
 
     # Regular products
-    # <div class=product-price>
-    #   <p><span itemprop=price>3.350.000 ₫</span>
-    # </div>
+    # <p class="price current-product-price"><strong> 11,990,000 ₫ </strong>
 
     # Prodcuts that on sale
-    # <div class=product-price>
-    #   <p><span><strike style=font-size:30px>700.000 ₫</strike></span>
-    #   <p><span style=font-size:30px>560.000 ₫</span>
-    # </div>
-    def get_price(self, link: str) -> Product:
+    #<p class="price current-product-price">undefined
+    #  <strong> 3,350,000 ₫ </strong>undefined
+    #  <i>Giá Niêm Yết: undefined
+    #  <strike>3,990,000 ₫</strike>undefined</i>undefined
+
+    async def get_price(self, link: str) -> Product:
         r = requests.get(link)
         if r.status_code not in (200, 201):
             raise Exception("error getting HoangHa product " + link)
         soup = BeautifulSoup(r.text, 'html.parser')
-        pricing_div = soup.find("div", {"class": "product-price"})
-        price_tags = pricing_div.findAll("span")
+        pricing_div = soup.find("p", {"class": "price current-product-price"})
+        sale_price_tags = pricing_div.strong
+        original_price_tags = pricing_div.strike
         original_price = 0
         sale_price = 0
-        if len(price_tags) == 1:
-            original_price = human_price_to_integer(price_tags[0].text)
-            sale_price = original_price
+        if original_price_tags:
+            sale_price = human_price_to_integer(sale_price_tags.text)
+            original_price = human_price_to_integer(original_price_tags.text)
         else:
-            original_price = human_price_to_integer(price_tags[0].text)
-            sale_price =  human_price_to_integer(price_tags[1].text)
+            sale_price = human_price_to_integer(sale_price_tags.text)
+            original_price = sale_price
         return Product(original_price, sale_price)
 
 
@@ -186,7 +187,7 @@ class CellphoneProductCrawler:
 
     PATTERN = re.compile(r"var\s+productJsonConfig\s+=(.*);?")
 
-    def get_price(self, link: str) -> Product:
+    async def get_price(self, link: str) -> Product:
         headers = {
             'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 11_0_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.198 Safari/537.36',
             'accept': 'application/json, text/plain, */*',
@@ -241,7 +242,7 @@ class LinhAnhProductCrawler:
 
     # Not found any product that on sale 
 
-    def get_price(self, link: str) -> Product:
+    async def get_price(self, link: str) -> Product:
         r = requests.get(link)
         if r.status_code not in (200, 201):
             raise Exception("error getting LinhAnh product " + link)
@@ -260,7 +261,7 @@ class ViettabletProductCrawler:
 
     # Products that on sale
 
-    def get_price(self, link: str) -> Product:
+    async def get_price(self, link: str) -> Product:
         r = requests.get(link)
         if r.status_code not in (200, 201):
             raise Exception("error getting Viettablet product " + link)
@@ -281,7 +282,7 @@ class CTMobileProductCrawler:
     #   </div>
     # </div>
 
-    def get_price(self, link: str) -> Product:
+    async def get_price(self, link: str) -> Product:
         r = requests.get(link)
         if r.status_code not in (200, 201):
             raise Exception("error getting CTMobile product " + link)
@@ -314,7 +315,7 @@ class HaloshopProductCrawler:
     #   </div>
     # </div>
 
-    def get_price(self, link: str) -> Product:
+    async def get_price(self, link: str) -> Product:
         r = requests.get(link)
         if r.status_code not in (200, 201):
             raise Exception("error getting Halo product " + link)
@@ -372,134 +373,75 @@ class CrawlerGetter:
         raise Exception("not found suitable crawler for link {}".format(link))
 
 
-def populate_prices():
+def run():
+    asyncio.run(populate_prices())
+
+
+async def populate_prices():
     config = configparser.ConfigParser()
     config.read(os.path.join(os.path.dirname(__file__), 'app.ini'))
-    logging.info(f"Running...")
+
+    #logging.info(f"Running...")
     SPREADSHEET_ID = config['DEFAULT']['SPREADSHEET_ID']
     LINK_RANGE_FORMART = config['DEFAULT']['LINK_RANGE_FORMART']
     PRICING_RANGE_FORMAT = config['DEFAULT']['PRICING_RANGE_FORMAT']
     SCOPES = ['https://www.googleapis.com/auth/spreadsheets.edit']
-    LOGGING_SPREADSHEET_ID =  config['DEFAULT']['SPREADSHEET_ID']
+    LOGGING_SPREADSHEET_ID =  config['DEFAULT']['LOGGING_SPREADSHEET_ID']
     LOGGING_LOG_RANGE_FORMAT =  config['DEFAULT']['LOGGING_LOG_RANGE_FORMAT']
     LOGGING_METADATA_RANGE =  config['DEFAULT']['LOGGING_METADATA_RANGE']
     gsheet_client = GSheetClient(SPREADSHEET_ID, SCOPES)
-    sheet_logger = SheetLogger(gsheet_client, LOGGING_METADATA_RANGE, LOGGING_LOG_RANGE_FORMAT)
+    logging_gsheet_client = GSheetClient(LOGGING_SPREADSHEET_ID, SCOPES)
+    sheet_logger = SheetLogger(logging_gsheet_client, LOGGING_METADATA_RANGE, LOGGING_LOG_RANGE_FORMAT)
+
     crawler_getter = CrawlerGetter()
     starting_index = 2
+    STEPS = 20
+
     while True:
-        link_range = LINK_RANGE_FORMART.format(starting_index, starting_index + 10)
+        link_range = LINK_RANGE_FORMART.format(starting_index, starting_index + STEPS)
         result = gsheet_client.get(link_range)
         if not result:
             break
+
         log_errors = []
+        tasks = []
         values = []
         for row in result:
             if len(row) == 0:
-                values.append([])
+                tasks.append(asyncio.create_task(empty()))
                 continue
             link = row[0]
-            try:
-                crawler = crawler_getter.get_crawler(link)
-                product = crawler.get_price(link)
+            crawler = crawler_getter.get_crawler(link)
+            tasks.append(asyncio.create_task(crawler.get_price(link)))
+
+        products = await asyncio.gather(*tasks, return_exceptions=True)
+        for product in products:
+            if product is None:
+                values.append([])
+            elif isinstance(product, Product):
                 values.append([product.sale_price, product.original_price])
-            except Exception as e:
-                log_info = LogInfo(link, str(e), datetime.now())
+            else:
+                e = product
+                log_info = LogInfo("", str(e), datetime.now())
                 log_errors.append(log_info)
-                logging.error("error crawling {}".format(str(e)))
+                #logging.error("error crawling {}".format(str(e)))
                 values.append([0,0])
 
-        pricing_range = PRICING_RANGE_FORMAT.format(starting_index, starting_index + 10)
+        pricing_range = PRICING_RANGE_FORMAT.format(starting_index, starting_index + STEPS)
         gsheet_client.update(pricing_range, values) 
-        starting_index += 10
         sheet_logger.log(log_errors)
+        starting_index += STEPS
+    #logging.info("Done")
 
-    logging.info("Done")
+
+async def empty():
+    return None
 
 
 def setup():
     logging.basicConfig(format='%(asctime)s %(levelname)s:%(message)s', filename='app.log', filemode='a', level=logging.INFO)
 
 
-def test():
-    #test_baochau()
-    #test_antien()
-    #test_hoangha()
-    #test_linhanh()
-    #test_viettablet()
-    #test_ctmobile()
-    #test_haloshop()
-    test_cellphones()
-
-
-
-def test_baochau():
-    link1 = "https://baochauelec.com/loa-bluetooth-jbl-go-2"
-    baochau_crawler = BaoChauProductCrawler()
-    print(baochau_crawler.get_price(link1))
-
-
-def test_antien():
-    link1 = 'https://antien.vn/tai-nghe/tai-nghe-apple-airpods-2-chinh-hang-vna-case-sac-thuong-mv7n2vna.html?gclid=Cj0KCQjwuL_8BRCXARIsAGiC51AgZri9aiG_9Rp3bTk0hKFtXv4XjNS0w_kwIYe3x85h3Vcbq_NfCgIaAvwAEALw_wcB&regid=12260648591603298072'
-    link2 = 'https://antien.vn/dong-ho-chinh-hang/dong-ho-dinh-vi-wonlex-kt16.html'
-    dtgk_crawler = AntienProductCrawler()
-    print(dtgk_crawler.get_price(link1))
-    print(dtgk_crawler.get_price(link2))
-
-
-def test_hoangha():
-    link1 = 'https://hoanghamobile.com/bo-phat-wifi-di-dong-kasda-kw9550-wireless-4g-chinh-hang-p13624.html'
-    link2 = 'https://hoanghamobile.com/apple-iphone-12-128gb-chinh-hang-vna-p19301.html'
-    crawler = HoangHaProductCrawler()
-    print(crawler.get_price(link1))
-    print(crawler.get_price(link2))
-
-
-def test_linhanh():
-    link1 = 'https://dientulinhanh.com/jbl-pulse-4'
-    link2 = 'https://dientulinhanh.com/loa-bluetooth-lg-xboomgo-pl5'
-    crawler = LinhAnhProductCrawler()
-    print(crawler.get_price(link1))
-    print(crawler.get_price(link2))
-
-
-def test_viettablet():
-    link1 = 'https://www.viettablet.com/iphone-11-pro-64gb-chua-active-tbh'
-    link2 = 'https://www.viettablet.com/apple-watch-1-cu-like-new-99'
-    crawler = ViettabletProductCrawler()
-    print(crawler.get_price(link1))
-    print(crawler.get_price(link2))
-
-
-def test_ctmobile():
-    link1 = 'https://ctmobile.vn/iphone-se2-128gb-new'
-    link2 = 'https://ctmobile.vn/watch-series-5-lte-44mm---99?gclid=CjwKCAiAv4n9BRA9EiwA30WND8R9wQI9FQmzC19G9LnCW5LhOIbXzw4zPqC1jcM8rsZ2geIWO884WRoCLB4QAvD_BwE'
-    crawler = CTMobileProductCrawler()
-    print(crawler.get_price(link1))
-    print(crawler.get_price(link2))
-
-
-def test_haloshop():
-    link1 = 'https://watch.haloshop.vn/apple-watch-series-6-list/apple-watch-s6-44mm-gps-blue-aluminum-case-with-deep-navy-sport-band'
-    link2 = 'https://haloshop.vn/iphone-12-pro/iphone-12-pro-gold-128gb'
-    crawler = HaloshopProductCrawler()
-    print(crawler.get_price(link1))
-    print(crawler.get_price(link2))
-
-
-def test_cellphones():
-    link1 = 'https://cellphones.com.vn/loa-bluetooth-jbl-go-2.html'
-    link2 = 'https://cellphones.com.vn/xiaomi-redmi-note-9-pro.html'
-    link3 = 'https://cellphones.com.vn/loa-bluetooth-jbl-pulse-4.html'
-    crawler = CellphoneProductCrawler()
-    print(crawler.get_price(link1))
-    print(crawler.get_price(link2))
-    print(crawler.get_price(link3))
-
-
 if __name__ == "__main__":
-    if env == 'test':
-        test()
-    else:
-        setup()
-        populate_prices()
+    #setup()
+    run()
