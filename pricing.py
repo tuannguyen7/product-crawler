@@ -531,7 +531,7 @@ async def populate_prices():
                 values.append([product.sale_price, product.original_price])
             else:
                 e = product
-                log_info = LogInfo(product.link, str(e), datetime.now())
+                log_info = LogInfo("", str(e), datetime.now())
                 log_errors.append(log_info)
                 #logging.error("error crawling {}".format(str(e)))
                 values.append([0,0])
