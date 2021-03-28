@@ -1,5 +1,5 @@
 from pricing import *
-import datetime
+from datetime import datetime
 import asyncio
 
 def test():
@@ -22,16 +22,19 @@ def test_antien():
 
 
 def test_coroutines_wrapper():
-    asyncio.run(test_minhtuan())
+    #asyncio.run(test_minhtuan())
+    #asyncio.run(test_ducthuy())
+    #asyncio.run(test_hnam())
+    asyncio.run(test_xtmobile())
 
 
 async def test_coroutines(*tasks):
-    starting_time = datetime.datetime.now().timestamp()
+    starting_time = datetime.now().timestamp()
     done = await asyncio.gather(tasks)
     for done_task in done:
         print(done_task)
 
-    ending_time = datetime.datetime.now().timestamp()
+    ending_time = datetime.now().timestamp()
     time_diff = ending_time - starting_time
     print(f"take {time_diff} s")
 
@@ -125,6 +128,51 @@ async def test_minhtuan():
     link3 = 'https://minhtuanmobile.com/macbook-pro-13-m1-late-2020-256gb-myd82-myda2-new-seal'
 
     crawler = MinhTuanMobileProductCrawler()
+    task_queue = []
+    task_queue.append(asyncio.create_task(crawler.get_price(link1)))
+    task_queue.append(asyncio.create_task(crawler.get_price(link2)))
+    task_queue.append(asyncio.create_task(crawler.get_price(link3)))
+    done = await asyncio.gather(*task_queue)
+    for done_task in done:
+        print(done_task)
+
+
+async def test_ducthuy():
+    link1 = 'https://www.duchuymobile.com/samsung-galaxy-note-10'
+    link2 = 'https://www.duchuymobile.com/iphone-12-pro-128gb-cu'
+    link3 = 'https://www.duchuymobile.com/apple-watch-se-44mm-gps'
+
+    crawler = DucHuyMobileProductCrawler()
+    task_queue = []
+    task_queue.append(asyncio.create_task(crawler.get_price(link1)))
+    task_queue.append(asyncio.create_task(crawler.get_price(link2)))
+    task_queue.append(asyncio.create_task(crawler.get_price(link3)))
+    done = await asyncio.gather(*task_queue)
+    for done_task in done:
+        print(done_task)
+
+
+async def test_hnam():
+    link1 = 'https://www.hnammobile.com/dien-thoai/samsung-galaxy-s20-fe-g780.20730.html'
+    link2 = 'https://www.hnammobile.com/dong-ho-thong-minh/apple-watch-se-40mm-gps-silver-aluminium-case-with-white-sport-band-mydm2.20275.html'
+    link3 = 'https://www.hnammobile.com/kho-may-cu/may-tinh-bang/samsung-galaxy-tab-a8-8-t295-2019-99.19955.html'
+
+    crawler = HNamMobileProductCrawler()
+    task_queue = []
+    task_queue.append(asyncio.create_task(crawler.get_price(link1)))
+    task_queue.append(asyncio.create_task(crawler.get_price(link2)))
+    task_queue.append(asyncio.create_task(crawler.get_price(link3)))
+    done = await asyncio.gather(*task_queue)
+    for done_task in done:
+        print(done_task)
+
+
+async def test_xtmobile():
+    link1 = 'https://www.xtmobile.vn/galaxy-s21-ultra'
+    link2 = 'https://www.xtmobile.vn/loa-bluetooth-jbl-clip-3'
+    link3 = 'https://www.xtmobile.vn/pin-du-phong-polymer-umetravel-trip10c-10000mah'
+
+    crawler = XTMobileProductCrawler()
     task_queue = []
     task_queue.append(asyncio.create_task(crawler.get_price(link1)))
     task_queue.append(asyncio.create_task(crawler.get_price(link2)))

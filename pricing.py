@@ -432,6 +432,69 @@ class MinhTuanMobileProductCrawler:
         return Product(original_price=original_price, sale_price=sale_price, link=link)
 
 
+class DucHuyMobileProductCrawler:
+
+    # <meta itemprop="price" content="4890000"/>
+
+    async def get_price(self, link: str) -> Product:
+        r = requests.get(link)
+        if r.status_code not in (200, 201):
+            raise Exception("error getting duc huy product " + link)
+        soup = BeautifulSoup(r.text, 'html.parser')
+        sale_price_tag = soup.find("meta", {"itemprop": "price"})
+        sale_price = human_price_to_integer(sale_price_tag['content'])
+        return Product(original_price=sale_price, sale_price=sale_price, link=link)
+
+
+class HNamMobileProductCrawler:
+
+
+    # Regular
+    # <input type="hidden" name="price" class="product-item-value-price" value="4799000">
+    # <input type="hidden" name="price-base" class="product-item-value-price-base" value="0">
+
+
+    # On sale
+    # <input type="hidden" name="price" class="product-item-value-price" value="4049000">
+    # <input type="hidden" name="price-base" class="product-item-value-price-base" value="4490000">
+
+    async def get_price(self, link: str) -> Product:
+        r = requests.get(link)
+        if r.status_code not in (200, 201):
+            raise Exception("error getting Hnam product " + link)
+        soup = BeautifulSoup(r.text, 'html.parser')
+        sale_price_tag = soup.find("input", {"class": "product-item-value-price"})
+        original_price_tag = soup.find("input", {"class": "product-item-value-price-base"})
+        sale_price = human_price_to_integer(sale_price_tag['value'])
+        original_price = human_price_to_integer(original_price_tag['value'])
+        if original_price == 0:
+            original_price = sale_price
+        return Product(original_price=original_price, sale_price=sale_price, link=link)
+
+
+class XTMobileProductCrawler:
+
+    # Regular
+    # <div class="prod_dt_price"><span class="price" id="price" itemprop="price" content="5290000">5.290.000đ</span></div>
+
+    # On sale
+    # <div class="prod_dt_price"><span class="price" id="price" itemprop="price" content="5290000">5.290.000đ</span><span class="price_old">6.490.000đ</span></div>
+
+
+    async def get_price(self, link: str) -> Product:
+        r = requests.get(link)
+        if r.status_code not in (200, 201):
+            raise Exception("error getting xtmobile product " + link)
+        soup = BeautifulSoup(r.text, 'html.parser')
+        sale_price_tag = soup.find("span", {"itemprop": "price"})
+        original_price_tag = soup.find("span", {"class": "price_old"})
+        sale_price = human_price_to_integer(sale_price_tag['content'])
+        original_price = sale_price
+        if original_price_tag:
+            original_price = human_price_to_integer(original_price_tag.text)
+        return Product(original_price=original_price, sale_price=sale_price, link=link)
+
+
 class CrawlerGetter:
     CRAWLERS = {
                 "tiki.vn": TikiProductCrawler(),
@@ -448,6 +511,9 @@ class CrawlerGetter:
                 "bachlongmobile.com": BachLongProductCrawler(),
                 "didongviet.vn": DidongvietProductCrawler(),
                 "minhtuanmobile.com": MinhTuanMobileProductCrawler(),
+                "duchuymobile.com": DucHuyMobileProductCrawler(),
+                "hnammobile.com": HNamMobileProductCrawler(),
+                "xtmobile.vn": XTMobileProductCrawler
             }
 
     def get_crawler(self, link: str):
@@ -479,6 +545,12 @@ class CrawlerGetter:
             return self.CRAWLERS.get("didongviet.vn")
         if "minhtuanmobile.com" in link:
             return self.CRAWLERS.get("minhtuanmobile.com")
+        if "duchuymobile.com" in link:
+            return self.CRAWLERS.get("duchuymobile.com")
+        if "hnammobile.com" in link:
+            return self.CRAWLERS.get("hnammobile.com")
+        if "xtmobile.vn" in link:
+            return self.CRAWLERS.get("xtmobile.vn")
         raise Exception("not found suitable crawler for link {}".format(link))
 
 
