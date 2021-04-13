@@ -115,8 +115,12 @@ class BaoChauProductCrawler:
         pricing_tag = soup.find("div", {"class": "price_and_no"})
         p_tags = pricing_tag.find_all("p")
         current_price = human_price_to_integer(p_tags[0].strong.text)
-        origianl_price = human_price_to_integer(p_tags[1].find("del").text)
-        return Product(original_price=origianl_price, sale_price=current_price, link=link)
+        origianl_price_tag = p_tags[1].find("del") if len(p_tags) >= 2 else None
+        original_price = current_price
+        if origianl_price_tag:
+            original_price = human_price_to_integer(origianl_price_tag.text)
+
+        return Product(original_price=original_price, sale_price=current_price, link=link)
 
 
 

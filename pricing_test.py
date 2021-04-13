@@ -25,7 +25,8 @@ def test_coroutines_wrapper():
     #asyncio.run(test_minhtuan())
     #asyncio.run(test_ducthuy())
     #asyncio.run(test_hnam())
-    asyncio.run(test_xtmobile())
+    #asyncio.run(test_xtmobile())
+    asyncio.run(test_baochau())
 
 
 async def test_coroutines(*tasks):
@@ -52,12 +53,24 @@ async def test_hoangha():
         print(done_task)
 
 
-def test_linhanh():
+async def test_linhanh():
     link1 = 'https://dientulinhanh.com/jbl-pulse-4'
     link2 = 'https://dientulinhanh.com/loa-bluetooth-lg-xboomgo-pl5'
     crawler = LinhAnhProductCrawler()
     print(crawler.get_price(link1))
     print(crawler.get_price(link2))
+
+
+async def test_baochau():
+    link1 = 'https://baochauelec.com/loa-bluetooth-jbl-charge-4'
+    link2 = 'https://baochauelec.com/loa-bluetooth-jbl-xtreme-2?gclid=Cj0KCQjwreT8BRDTARIsAJLI0KId8-a5F_LBBF107g_prpF5RirT5g51oAId00O7dC5kfLMFTl-CmsgaAsrKEALw_wcB'
+    crawler = BaoChauProductCrawler()
+    task_queue = []
+    task_queue.append(asyncio.create_task(crawler.get_price(link1)))
+    task_queue.append(asyncio.create_task(crawler.get_price(link2)))
+    done = await asyncio.gather(*task_queue)
+    for done_task in done:
+        print(done_task)
 
 
 def test_viettablet():
@@ -168,7 +181,7 @@ async def test_hnam():
 
 
 async def test_xtmobile():
-    link1 = 'https://www.xtmobile.vn/galaxy-s21-ultra'
+    link1 = 'https://www.xtmobile.vn/iphone-11-pro-max-64-gb-ban-likenew'
     link2 = 'https://www.xtmobile.vn/loa-bluetooth-jbl-clip-3'
     link3 = 'https://www.xtmobile.vn/pin-du-phong-polymer-umetravel-trip10c-10000mah'
 
