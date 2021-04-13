@@ -513,7 +513,7 @@ class CrawlerGetter:
                 "minhtuanmobile.com": MinhTuanMobileProductCrawler(),
                 "duchuymobile.com": DucHuyMobileProductCrawler(),
                 "hnammobile.com": HNamMobileProductCrawler(),
-                "xtmobile.vn": XTMobileProductCrawler
+                "xtmobile.vn": XTMobileProductCrawler(),
             }
 
     def get_crawler(self, link: str):
