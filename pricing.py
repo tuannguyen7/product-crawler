@@ -499,6 +499,66 @@ class XTMobileProductCrawler:
         return Product(original_price=original_price, sale_price=sale_price, link=link)
 
 
+class SangMobileProductCrawler:
+
+    # Regular
+    # <span class="current-price ProductPrice">17,390,000₫</span>
+
+
+    # On sale
+    # <span class="original-price ComparePrice"><s>18,390,000₫</s></span>
+
+
+    async def get_price(self, link: str) -> Product:
+        r = requests.get(link)
+        if r.status_code not in (200, 201):
+            raise Exception("error getting xtmobile product " + link)
+        soup = BeautifulSoup(r.text, 'html.parser')
+        sale_price_tag = soup.find("span", {"class": "current-price ProductPrice"})
+        original_price_tag = soup.find("span", {"class": "original-price ComparePrice"})
+        sale_price, original_price = 0, 0
+        if sale_price_tag:
+            sale_price = self.convert_to_price(sale_price_tag.text)
+        if original_price_tag:
+            original_price = self.convert_to_price(original_price_tag.text)
+        return Product(original_price=original_price, sale_price=sale_price, link=link)
+
+    def convert_to_price(self, text):
+        if text == "" or "Liên hệ" in text:
+            return 0
+        return human_price_to_integer(text)
+
+
+class PhucKhangProductCrawler:
+
+    # Regular
+    # <span class="price-buy">28.250.000 ₫</span>
+
+
+    # On sale
+    # <span class="price-vmarket">31.990.000 ₫</span>
+
+
+    async def get_price(self, link: str) -> Product:
+        r = requests.get(link)
+        if r.status_code not in (200, 201):
+            raise Exception("error getting xtmobile product " + link)
+        soup = BeautifulSoup(r.text, 'html.parser')
+        sale_price_tag = soup.find("span", {"class": "price-buy"})
+        original_price_tag = soup.find("span", {"class": "price-vmarket"})
+        sale_price, original_price = 0, 0
+        if sale_price_tag:
+            sale_price = self.convert_to_price(sale_price_tag.text)
+        if original_price_tag:
+            original_price = self.convert_to_price(original_price_tag.text)
+        return Product(original_price=original_price, sale_price=sale_price, link=link)
+
+    def convert_to_price(self, text):
+        if text == "" or "Vui lòng gọi" in text:
+            return 0
+        return human_price_to_integer(text)
+
+
 class CrawlerGetter:
     CRAWLERS = {
                 "tiki.vn": TikiProductCrawler(),
@@ -518,6 +578,8 @@ class CrawlerGetter:
                 "duchuymobile.com": DucHuyMobileProductCrawler(),
                 "hnammobile.com": HNamMobileProductCrawler(),
                 "xtmobile.vn": XTMobileProductCrawler(),
+                "sangmobile.com": SangMobileProductCrawler(),
+                "phuckhangmobile.com": PhucKhangProductCrawler(),
             }
 
     def get_crawler(self, link: str):
@@ -555,6 +617,10 @@ class CrawlerGetter:
             return self.CRAWLERS.get("hnammobile.com")
         if "xtmobile.vn" in link:
             return self.CRAWLERS.get("xtmobile.vn")
+        if "sangmobile.com" in link:
+            return self.CRAWLERS.get("sangmobile.com")
+        if "phuckhangmobile.com" in link:
+            return self.CRAWLERS.get("phuckhangmobile.com")
         raise Exception("not found suitable crawler for link {}".format(link))
 
 

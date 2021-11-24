@@ -11,6 +11,7 @@ def test():
     #test_ctmobile()
     #test_haloshop()
     #test_cellphones()
+    #test_sangmobile()
 
 
 def test_antien():
@@ -26,7 +27,9 @@ def test_coroutines_wrapper():
     #asyncio.run(test_ducthuy())
     #asyncio.run(test_hnam())
     #asyncio.run(test_xtmobile())
-    asyncio.run(test_baochau())
+    #asyncio.run(test_baochau())
+    asyncio.run(test_sangmobile())
+    #asyncio.run(test_phuckhang())
 
 
 async def test_coroutines(*tasks):
@@ -105,7 +108,6 @@ def test_cellphones():
     print(crawler.get_price(link1))
     print(crawler.get_price(link2))
     print(crawler.get_price(link3))
-
 
 async def test_bachlong():
     link1 = 'https://bachlongmobile.com/ipad-pro-11-inch-2020-1tb-wifi-chinh-hang.html'
@@ -186,6 +188,34 @@ async def test_xtmobile():
     link3 = 'https://www.xtmobile.vn/pin-du-phong-polymer-umetravel-trip10c-10000mah'
 
     crawler = XTMobileProductCrawler()
+    task_queue = []
+    task_queue.append(asyncio.create_task(crawler.get_price(link1)))
+    task_queue.append(asyncio.create_task(crawler.get_price(link2)))
+    task_queue.append(asyncio.create_task(crawler.get_price(link3)))
+    done = await asyncio.gather(*task_queue)
+    for done_task in done:
+        print(done_task)
+
+
+async def test_sangmobile():
+    link1 = 'https://www.sangmobile.com/products/iphone-11-pro-max-64gb-99'
+    link2 = 'https://www.sangmobile.com/collections/dong-ho/products/apple-watch-edition-series-5-lte-44mm-titanium-sport-loop'
+    link3 = 'https://www.sangmobile.com/collections/dien-thoai-moi/products/samsung-galaxy-note-9-cong-ty'
+    crawler = SangMobileProductCrawler()
+    task_queue = []
+    task_queue.append(asyncio.create_task(crawler.get_price(link1)))
+    task_queue.append(asyncio.create_task(crawler.get_price(link2)))
+    task_queue.append(asyncio.create_task(crawler.get_price(link3)))
+    done = await asyncio.gather(*task_queue)
+    for done_task in done:
+        print(done_task)
+
+
+async def test_phuckhang():
+    link1 = 'https://phuckhangmobile.com/iphone-13-pro-128gb-chinh-hang-moi-100-vn-a-5723.html'
+    link2 = 'https://phuckhangmobile.com/apple-macbook-pro-13-2020-m1-16gb-512gb-cu-99-5484.html'
+    link3 = 'https://phuckhangmobile.com/airpods-pro-likenew-99-4937.html'
+    crawler = PhucKhangProductCrawler()
     task_queue = []
     task_queue.append(asyncio.create_task(crawler.get_price(link1)))
     task_queue.append(asyncio.create_task(crawler.get_price(link2)))
