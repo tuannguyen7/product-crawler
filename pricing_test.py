@@ -23,12 +23,13 @@ def test_antien():
 
 
 def test_coroutines_wrapper():
+    #asyncio.run(test_cellphones())
     #asyncio.run(test_minhtuan())
-    #asyncio.run(test_ducthuy())
+    asyncio.run(test_ducthuy())
     #asyncio.run(test_hnam())
     #asyncio.run(test_xtmobile())
     #asyncio.run(test_baochau())
-    asyncio.run(test_sangmobile())
+    #asyncio.run(test_sangmobile())
     #asyncio.run(test_phuckhang())
 
 
@@ -100,14 +101,19 @@ def test_haloshop():
     print(crawler.get_price(link2))
 
 
-def test_cellphones():
+async def test_cellphones():
     link1 = 'https://cellphones.com.vn/loa-bluetooth-jbl-go-2.html'
-    link2 = 'https://cellphones.com.vn/xiaomi-redmi-note-9-pro.html'
+    link2 = 'https://cellphones.com.vn/samsung-galaxy-buds-live.html'
     link3 = 'https://cellphones.com.vn/he-thong-wifi-mesh-cho-toan-ngoi-nha-ac1200-deco-m4.html'
     crawler = CellphoneProductCrawler()
-    print(crawler.get_price(link1))
-    print(crawler.get_price(link2))
-    print(crawler.get_price(link3))
+    task_queue = []
+    task_queue.append(crawler.get_price(link1))
+    task_queue.append(crawler.get_price(link2))
+    task_queue.append(crawler.get_price(link3))
+    done = await asyncio.gather(*task_queue)
+    for done_task in done:
+        print(done_task)
+
 
 async def test_bachlong():
     link1 = 'https://bachlongmobile.com/ipad-pro-11-inch-2020-1tb-wifi-chinh-hang.html'
@@ -138,8 +144,8 @@ async def test_didongviet():
 
 
 async def test_minhtuan():
-    link1 = 'https://minhtuanmobile.com/ipad-pro-11-2020-128gb-wifi-likenew'
-    link2 = 'https://minhtuanmobile.com/iphone-12-pro-max-128gb-chinh-hang'
+    link1 = 'https://minhtuanmobile.com/iphone-11-2019-64gb-vn-a/'
+    link2 = 'https://minhtuanmobile.com/apple-watch-s6-lte-40mm-chinh-hang-vn-a/'
     link3 = 'https://minhtuanmobile.com/macbook-pro-13-m1-late-2020-256gb-myd82-myda2-new-seal'
 
     crawler = MinhTuanMobileProductCrawler()

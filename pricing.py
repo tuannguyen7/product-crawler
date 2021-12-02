@@ -190,6 +190,7 @@ class CellphoneProductCrawler:
 
 
     PATTERN = re.compile(r"var\s+productJsonConfig\s+=(.*);?")
+    PATTERN2 = re.compile(r"var\s+productId\s+=(.*);?")
 
     async def get_price(self, link: str) -> Product:
         headers = {
@@ -215,16 +216,27 @@ class CellphoneProductCrawler:
         jsonConfig = json.loads(jsonStr)
         product_id = jsonConfig["productId"]
         soup = BeautifulSoup(text, 'html.parser')
-        original_price_tag = soup.find("span", {"id": f"old-price-{product_id}"})
-        sale_price_tag = soup.find("span", {"id": f"product-price-{product_id}"})
-        original_price = human_price_to_integer(original_price_tag.text)
+        sale_price_tag_id = f'product-price-{product_id}'
+        original_price_tag_id = f'old-price-{product_id}'
+        sale_price_tag = soup.find(id=sale_price_tag_id)
+        original_price_tag = soup.find(id=original_price_tag_id)
         sale_price = human_price_to_integer(sale_price_tag.text)
+        original_price = sale_price
+        if original_price_tag:
+            original_price = human_price_to_integer(original_price_tag.text)
         return Product(original_price=original_price, sale_price=sale_price, link=link)
 
+
     def _get_price_case2(self, text, link):
+        matcher = self.PATTERN2.search(text)
+        if not matcher:
+            raise Exception("error getting Cellphone product, not found pattern. Link" + link)
+        jsonStr = matcher.group(1).strip()
+        if jsonStr[-1] == ';':
+            jsonStr = jsonStr[:-1]
+        
         soup = BeautifulSoup(text, 'html.parser')
-        product_id_tag = soup.find("input", {"id": 'lastProductId'})
-        product_id = product_id_tag["value"]
+        product_id = jsonStr
         sale_price_tag_id = f'product-price-{product_id}'
         original_price_tag_id = f'old-price-{product_id}'
         sale_price_tag = soup.find(id=sale_price_tag_id)
@@ -415,39 +427,51 @@ class DidongvietProductCrawler:
 
 class MinhTuanMobileProductCrawler:
 
-    SALE_PRICE_PATTERN = re.compile(r"display_price&quot;:(\d+)")
-    ORIGINAL_PRICE_PATTERN = re.compile("display_regular_price&quot;:(\d+)")
-
     async def get_price(self, link: str) -> Product:
         r = requests.get(link)
         if r.status_code not in (200, 201):
             raise Exception("error getting minhtuanmobile product " + link)
+        soup = BeautifulSoup(r.text, 'html.parser')
+        sale_price_tags = soup.find_all("p", class_="prodetail__price mb-1") or []
+        original_price_tag = soup.find("p", class_="clearfix prodetail__price_orig")
         original_price = 0
         sale_price = 0
-        html = r.text
-        matcher = self.ORIGINAL_PRICE_PATTERN.search(html)
-        if matcher:
-            original_price = human_price_to_integer(matcher.group(1).strip())
-
-        matcher = self.SALE_PRICE_PATTERN.search(html)
-        if matcher:
-            sale_price = human_price_to_integer(matcher.group(1).strip())
+        for sale_price_tag in sale_price_tags:
+            t = sale_price_tag.find("b", class_="price")
+            if t:
+                sale_price = human_price_to_integer(t.text)
+        if original_price_tag:
+            original_price = human_price_to_integer(original_price_tag.text)
 
         return Product(original_price=original_price, sale_price=sale_price, link=link)
 
 
 class DucHuyMobileProductCrawler:
 
-    # <meta itemprop="price" content="4890000"/>
+    # <script> dataLayer = [{ 'ID': '4241', 'value': 1 }]; </script> // get product id
+    # <span id="sec_discounted_price_4241" class="price-num">1.899.000</span>
+
+    PATTERN = re.compile(r"<script>\s*dataLayer\s*=(.*?);\s*</script>")
 
     async def get_price(self, link: str) -> Product:
         r = requests.get(link)
         if r.status_code not in (200, 201):
             raise Exception("error getting duc huy product " + link)
+        matcher = self.PATTERN.search(r.text)
+        if not matcher:
+            raise Exception("error getting Cellphone product, not found pattern. Link" + link)
         soup = BeautifulSoup(r.text, 'html.parser')
-        sale_price_tag = soup.find("meta", {"itemprop": "price"})
-        sale_price = human_price_to_integer(sale_price_tag['content'])
-        return Product(original_price=sale_price, sale_price=sale_price, link=link)
+        jsonStr = matcher.group(1).strip()
+        if jsonStr[-1] == ';':
+            jsonStr = jsonStr[:-1]
+        jsonStr = jsonStr.replace("'", "\"")
+        p_arr = json.loads(jsonStr)
+        first_pid = p_arr[0]['ID']
+        sale_price_tag = soup.find(id=f"sec_discounted_price_{first_pid}")
+        sale_price = 0
+        if sale_price_tag:
+            sale_price = human_price_to_integer(sale_price_tag.text)
+        return Product(sale_price, sale_price, link)
 
 
 class HNamMobileProductCrawler:
