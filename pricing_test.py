@@ -4,28 +4,13 @@ import asyncio
 
 def test():
     test_coroutines_wrapper()
-    #test_antien()
-    #test_hoangha()
-    #test_linhanh()
-    #test_viettablet()
-    #test_ctmobile()
-    #test_haloshop()
-    #test_cellphones()
-    #test_sangmobile()
-
-
-def test_antien():
-    link1 = 'https://antien.vn/tai-nghe/tai-nghe-apple-airpods-2-chinh-hang-vna-case-sac-thuong-mv7n2vna.html?gclid=Cj0KCQjwuL_8BRCXARIsAGiC51AgZri9aiG_9Rp3bTk0hKFtXv4XjNS0w_kwIYe3x85h3Vcbq_NfCgIaAvwAEALw_wcB&regid=12260648591603298072'
-    link2 = 'https://antien.vn/dong-ho-chinh-hang/dong-ho-dinh-vi-wonlex-kt16.html'
-    dtgk_crawler = AntienProductCrawler()
-    print(dtgk_crawler.get_price(link1))
-    print(dtgk_crawler.get_price(link2))
 
 
 def test_coroutines_wrapper():
-    #asyncio.run(test_cellphones())
+    #asyncio.run(test_antien())
+    asyncio.run(test_cellphones())
     #asyncio.run(test_minhtuan())
-    asyncio.run(test_ducthuy())
+    #asyncio.run(test_ducthuy())
     #asyncio.run(test_hnam())
     #asyncio.run(test_xtmobile())
     #asyncio.run(test_baochau())
@@ -42,6 +27,21 @@ async def test_coroutines(*tasks):
     ending_time = datetime.now().timestamp()
     time_diff = ending_time - starting_time
     print(f"take {time_diff} s")
+
+
+async def test_antien():
+    link1 = 'https://antien.vn/tai-nghe/tai-nghe-apple-airpods-2-chinh-hang-vna-case-sac-thuong-mv7n2vna.html?gclid=Cj0KCQjwuL_8BRCXARIsAGiC51AgZri9aiG_9Rp3bTk0hKFtXv4XjNS0w_kwIYe3x85h3Vcbq_NfCgIaAvwAEALw_wcB&regid=12260648591603298072'
+    link2 = 'https://antien.vn/dong-ho-chinh-hang/dong-ho-dinh-vi-wonlex-kt16.html'
+    link3 = 'https://antien.vn/loa-mini-ket-noi-the-nho-khong-day-bluetooth-gia-re-nhat/loa-jbl-flip-5.html'
+    crawler = AntienProductCrawler()
+    task_queue = []
+    task_queue.append(asyncio.create_task(crawler.get_price(link1)))
+    task_queue.append(asyncio.create_task(crawler.get_price(link2)))
+    task_queue.append(asyncio.create_task(crawler.get_price(link3)))
+
+    done = await asyncio.gather(*task_queue)
+    for done_task in done:
+        print(done_task)
 
 
 async def test_hoangha():

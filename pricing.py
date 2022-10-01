@@ -128,17 +128,12 @@ class BaoChauProductCrawler:
 class AntienProductCrawler:
 
 
-    # Regular products
-    # <div class="price-pro"> 
-    #   <strong>3,450,000 đ</strong>
-    # </div>
-
-    # Products that on sale
-    # <div class="price-pro"> 
-    #   <strong>1,850,000 đ</strong>
-    #   <span class="mid-line">
-    #       2,250,000 đ  
-    #   </span> 
+    # Regular products, Products that on sale
+    # <div class="product-detail-info">
+    #   <div class="product-price">
+    #      <span class="price product-main-price">1.700.000 ₫</span> # on sale
+    #      <span class="old-price">2.190.000 ₫</span>                # regular price
+    #   </div>
     # </div>
 
     async def get_price(self, link: str) -> Product:
@@ -146,9 +141,10 @@ class AntienProductCrawler:
         if r.status_code not in (200, 201):
             raise Exception("error getting Antien product " + link)
         soup = BeautifulSoup(r.text, 'html.parser')
-        pricing_tag = soup.find("div", {"class": "price-pro"})
-        original_price_tag = pricing_tag.find("strong")
-        sale_price_tag = pricing_tag.find("strong")
+        product_tag = soup.find("div", {"class": "product-detail-info"})
+        
+        original_price_tag = product_tag.find("span", {"class": "price product-main-price"})
+        sale_price_tag = product_tag.find("span", {"class": "old-price"})
         original_price = human_price_to_integer(original_price_tag.text)
         sale_price = human_price_to_integer(sale_price_tag.text if sale_price_tag is not None else original_price_tag.text)
         return Product(original_price=original_price, sale_price=sale_price, link=link)
