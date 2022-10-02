@@ -184,9 +184,10 @@ class HoangHaProductCrawler:
 # Cellphone cellphones.com.vn
 class CellphoneProductCrawler:
 
-
-    PATTERN = re.compile(r"var\s+productJsonConfig\s+=(.*);?")
-    PATTERN2 = re.compile(r"var\s+productId\s+=(.*);?")
+    # <div class="box-info__box-price">
+    #  <p class="product__price--show">590.000 ₫</p>
+    #  <p class="product__price--through">699.000 ₫</p>
+    # </div>
 
     async def get_price(self, link: str) -> Product:
         headers = {
@@ -196,52 +197,19 @@ class CellphoneProductCrawler:
         r = requests.get(link, headers = headers)
         if r.status_code not in (200, 201):
             raise Exception("error getting Cellphone product " + link)
-        text = r.text
-        try:
-            return self._get_price_case1(text, link)
-        except Exception:
-            return self._get_price_case2(text, link)
-
-    def _get_price_case1(self, text, link):
-        matcher = self.PATTERN.search(text)
-        if not matcher:
-            raise Exception("error getting Cellphone product, not found pattern. Link" + link)
-        jsonStr = matcher.group(1).strip()
-        if jsonStr[-1] == ';':
-            jsonStr = jsonStr[:-1]
-        jsonConfig = json.loads(jsonStr)
-        product_id = jsonConfig["productId"]
-        soup = BeautifulSoup(text, 'html.parser')
-        sale_price_tag_id = f'product-price-{product_id}'
-        original_price_tag_id = f'old-price-{product_id}'
-        sale_price_tag = soup.find(id=sale_price_tag_id)
-        original_price_tag = soup.find(id=original_price_tag_id)
-        sale_price = human_price_to_integer(sale_price_tag.text)
-        original_price = sale_price
+        soup = BeautifulSoup(r.text, 'html.parser')
+        pricing_div = soup.find("div", {"class": "box-info__box-price"})
+        sale_price_tag = pricing_div.find("p", {"class": "product__price--show"})
+        original_price_tag = pricing_div.find("p", {"class": "product__price--through"})
+        original_price = 0
+        sale_price = 0
         if original_price_tag:
+            sale_price = human_price_to_integer(sale_price_tag.text)
             original_price = human_price_to_integer(original_price_tag.text)
-        return Product(original_price=original_price, sale_price=sale_price, link=link)
-
-
-    def _get_price_case2(self, text, link):
-        matcher = self.PATTERN2.search(text)
-        if not matcher:
-            raise Exception("error getting Cellphone product, not found pattern. Link" + link)
-        jsonStr = matcher.group(1).strip()
-        if jsonStr[-1] == ';':
-            jsonStr = jsonStr[:-1]
-        
-        soup = BeautifulSoup(text, 'html.parser')
-        product_id = jsonStr
-        sale_price_tag_id = f'product-price-{product_id}'
-        original_price_tag_id = f'old-price-{product_id}'
-        sale_price_tag = soup.find(id=sale_price_tag_id)
-        original_price_tag = soup.find(id=original_price_tag_id)
-        sale_price = human_price_to_integer(sale_price_tag.text)
-        original_price = sale_price
-        if original_price_tag:
-            original_price = human_price_to_integer(original_price_tag.text)
-        return Product(original_price=original_price, sale_price=sale_price, link=link)
+        else:
+            sale_price = human_price_to_integer(sale_price_tag.text)
+            original_price = sale_price
+        return Product(original_price=original_price, sale_price=original_price, link=link)
 
 
 # Linh Anh dientulinhanh.com
@@ -390,6 +358,7 @@ class BachLongProductCrawler:
 
 class DidongvietProductCrawler:
 
+    ### Original price from html tags
     # Regular product
     # <span class="price-container price-final_price tax weee"     itemprop="offers" itemscope itemtype="http://schema.org/Offer">
     #   <span class="price">8.990.000 ₫</span>        
@@ -398,14 +367,41 @@ class DidongvietProductCrawler:
 
     # Products that on sale
     # <span class="price-container price-final_price tax weee"     itemprop="offers" itemscope itemtype="http://schema.org/Offer">
-    #   <span class="price">8.990.000 ₫</span>        
+    #   <span class="price">8.990.000 ₫</span> <--- ORIGINAL PRICE HERE
     # </span>
 
+    ### Get sale price from <script>
+    #    <script>
+    #    dataLayer.push({
+    #      'dr_event_type' : 'view_item',
+    #      'dr_value' : 6590000,   // product price   <---- SALE PRICE HERE
+    #      'dr_items' : [{
+    #          'id': '4782',   // should be the same as the id in Google Merchant Center, 
+    #          'google_business_vertical': 'retail'
+    #        }],
+    #      'event':'dynamic_remarketing'
+    #    });
+    #    </script>
+
+    PATTERN = re.compile(r"<script>\s*dataLayer\.push\(((.|\n)*?)\s*\);\s*</script>")
+
+    # sale prices are taken from <script>
+    # original prices (market prices) are taken from html tags
     async def get_price(self, link: str) -> Product:
         r = requests.get(link)
         if r.status_code not in (200, 201):
             raise Exception("error getting di dong viet product " + link)
-        soup = BeautifulSoup(r.text, 'html.parser')
+        body = r.text
+        return self.get_original_price(body, link)
+        #sale_price = self.get_sale_price(body, link)
+        #product_in_html = self.get_original_price(body)
+
+        # replace by sale_price from <script>
+        #product_in_html.sale_price = sale_price
+        #return product_in_html
+
+    def get_original_price(self, text, link) -> Product:
+        soup = BeautifulSoup(text, 'html.parser')
         price_div = soup.find("span", {"class": "price-container price-final_price tax weee"})
         sale_price_tag = price_div.find("span", {"class": "price"})
         original_price_tag = soup.find("span", {"class": "price-old"})
@@ -420,25 +416,48 @@ class DidongvietProductCrawler:
 
         return Product(original_price=original_price, sale_price=sale_price, link=link)
 
+    # In-progress
+    def get_sale_price(self, text, link) -> int:
+        matcher = self.PATTERN.search(text)
+        if not matcher:
+            raise Exception("error getting Didongviet product, not found pattern. Link" + link)
+        jsonStr = matcher.group(1).strip()
+        # remove last ;
+        if jsonStr[-1] == ';':
+            jsonStr = jsonStr[:-1]
+        print(jsonStr)
+        #jsonStr = jsonStr.replace("'", "\"")
+        product = json.loads(jsonStr)
+        return product["dr_value"]
+        
 
 class MinhTuanMobileProductCrawler:
+
+    ## Sale price
+    # var price_current = 4990000;
+
+    ## Original price
+    # price: 'Giá thị trường: 5,990,000 vnđ',
+
+    SALE_PRICE_PATTERN = re.compile(r"var\s+price_current\s+=\s*(\d+);")
+    ORIGINAL_PRICE_PATTERN = re.compile(r"price:\s+'Giá thị trường:\s*(.*)',")
 
     async def get_price(self, link: str) -> Product:
         r = requests.get(link)
         if r.status_code not in (200, 201):
             raise Exception("error getting minhtuanmobile product " + link)
-        soup = BeautifulSoup(r.text, 'html.parser')
-        sale_price_tags = soup.find_all("p", class_="prodetail__price mb-1") or []
-        original_price_tag = soup.find("p", class_="clearfix prodetail__price_orig")
-        original_price = 0
-        sale_price = 0
-        for sale_price_tag in sale_price_tags:
-            t = sale_price_tag.find("b", class_="price")
-            if t:
-                sale_price = human_price_to_integer(t.text)
-        if original_price_tag:
-            original_price = human_price_to_integer(original_price_tag.text)
+        text = r.text
+        sale_price_matcher = self.SALE_PRICE_PATTERN.search(text)
+        original_price_matcher = self.ORIGINAL_PRICE_PATTERN.search(text)
 
+        if not sale_price_matcher:
+            raise Exception("error getting MinhTuanMobile product, not found price. Link " + link)
+
+        sale_price_text = sale_price_matcher.group(1).strip()
+        sale_price = human_price_to_integer(sale_price_text)
+        original_price = sale_price
+        if original_price_matcher:
+            original_price = human_price_to_integer(original_price_matcher.group(1).strip())
         return Product(original_price=original_price, sale_price=sale_price, link=link)
 
 
@@ -541,6 +560,8 @@ class SangMobileProductCrawler:
             sale_price = self.convert_to_price(sale_price_tag.text)
         if original_price_tag:
             original_price = self.convert_to_price(original_price_tag.text)
+        else:
+            original_price = sale_price
         return Product(original_price=original_price, sale_price=sale_price, link=link)
 
     def convert_to_price(self, text):

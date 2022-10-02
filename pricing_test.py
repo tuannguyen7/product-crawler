@@ -8,14 +8,16 @@ def test():
 
 def test_coroutines_wrapper():
     #asyncio.run(test_antien())
-    asyncio.run(test_cellphones())
+    #asyncio.run(test_cellphones())
     #asyncio.run(test_minhtuan())
     #asyncio.run(test_ducthuy())
     #asyncio.run(test_hnam())
     #asyncio.run(test_xtmobile())
     #asyncio.run(test_baochau())
     #asyncio.run(test_sangmobile())
-    #asyncio.run(test_phuckhang())
+    asyncio.run(test_phuckhang())
+    #asyncio.run(test_viettablet())
+    #asyncio.run(test_didongviet())
 
 
 async def test_coroutines(*tasks):
@@ -77,12 +79,18 @@ async def test_baochau():
         print(done_task)
 
 
-def test_viettablet():
+async def test_viettablet():
     link1 = 'https://www.viettablet.com/iphone-11-pro-64gb-chua-active-tbh'
     link2 = 'https://www.viettablet.com/apple-watch-1-cu-like-new-99'
+    link3 = 'https://www.viettablet.com/iphone-7-plus-128gb-like-new'
     crawler = ViettabletProductCrawler()
-    print(crawler.get_price(link1))
-    print(crawler.get_price(link2))
+    task_queue = []
+    task_queue.append(asyncio.create_task(crawler.get_price(link1)))
+    task_queue.append(asyncio.create_task(crawler.get_price(link2)))
+    task_queue.append(asyncio.create_task(crawler.get_price(link3)))
+    done = await asyncio.gather(*task_queue)
+    for done_task in done:
+        print(done_task)
 
 
 def test_ctmobile():
@@ -132,12 +140,14 @@ async def test_didongviet():
     link1 = 'https://didongviet.vn/samsung-galaxy-note-20-ultra-ban-256gb'
     link2 = 'https://didongviet.vn/ipad-air-2020-256gb'
     link3 = 'https://didongviet.vn/ipad-10-2inch-2020-32gb-wifi'
+    link4 = 'https://didongviet.vn/iphone-xs-64gb-like-new'
 
     crawler = DidongvietProductCrawler()
     task_queue = []
     task_queue.append(asyncio.create_task(crawler.get_price(link1)))
     task_queue.append(asyncio.create_task(crawler.get_price(link2)))
     task_queue.append(asyncio.create_task(crawler.get_price(link3)))
+    task_queue.append(asyncio.create_task(crawler.get_price(link4)))
     done = await asyncio.gather(*task_queue)
     for done_task in done:
         print(done_task)
@@ -177,12 +187,14 @@ async def test_hnam():
     link1 = 'https://www.hnammobile.com/dien-thoai/samsung-galaxy-s20-fe-g780.20730.html'
     link2 = 'https://www.hnammobile.com/dong-ho-thong-minh/apple-watch-se-40mm-gps-silver-aluminium-case-with-white-sport-band-mydm2.20275.html'
     link3 = 'https://www.hnammobile.com/kho-may-cu/may-tinh-bang/samsung-galaxy-tab-a8-8-t295-2019-99.19955.html'
+    link4 = 'https://www.hnammobile.com/dien-thoai/samsung-galaxy-z-fold4-5g-f936-256gb-ram-12gb.24416.html'
 
     crawler = HNamMobileProductCrawler()
     task_queue = []
     task_queue.append(asyncio.create_task(crawler.get_price(link1)))
     task_queue.append(asyncio.create_task(crawler.get_price(link2)))
     task_queue.append(asyncio.create_task(crawler.get_price(link3)))
+    task_queue.append(asyncio.create_task(crawler.get_price(link4)))
     done = await asyncio.gather(*task_queue)
     for done_task in done:
         print(done_task)
