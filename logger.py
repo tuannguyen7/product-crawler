@@ -1,7 +1,6 @@
 from datetime import datetime
-from typing import List
 
-from gsheet_client import GSheetClient
+from clients.gsheet_client import GSheetClient
 
 
 class SheetLogger:

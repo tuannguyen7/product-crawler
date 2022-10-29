@@ -1,17 +1,11 @@
 from bs4 import BeautifulSoup
 from abc import ABCMeta, abstractmethod
-from datetime import datetime
-import asyncio
 import requests
 import re
-import logging
-import configparser
-import os
-import re
 import json
+import lxml
+import cchardet
 
-from gsheet_client import GSheetClient
-from logger import SheetLogger, LogInfo
 from helper import human_price_to_integer
 
 
@@ -41,19 +35,6 @@ class CrawlerListener():
     def onSuccess(self, product_link, product): raise NotImplementedError
 
 
-class LoggingListener(CrawlerListener):
-
-    def __init__(self, sheet_logger):
-        self.sheet_logger = sheet_logger
-
-    def onFailed(self, product_link, err):
-        log_infos = [LogInfo(product_link=product_link, err=err, time=datetime.now())]
-        sheet_logger.log(log_infos)
-
-    def onSuccess(self, product_link, product):
-        pass
-
-
 class TikiProductCrawler:
     
     async def get_price(self, link: str) -> Product:
@@ -81,7 +62,7 @@ class M24hProductCrawler:
         r = requests.get(link)
         if r.status_code not in (200, 201):
             raise Exception("error getting 24h product " + link)
-        soup = BeautifulSoup(r.text, 'html.parser')
+        soup = BeautifulSoup(r.text, 'lxml')
         original_price_tag = soup.find(id="data_price_old")
         sale_price_tag = soup.find(id="data_price")
         return Product(original_price=int(original_price_tag["value"]), sale_price=int(sale_price_tag["value"]), link=link)
@@ -111,7 +92,7 @@ class BaoChauProductCrawler:
         r = requests.get(link)
         if r.status_code not in (200, 201):
             raise Exception("error getting BaoChau product " + link)
-        soup = BeautifulSoup(r.text, 'html.parser')
+        soup = BeautifulSoup(r.text, 'lxml')
         pricing_tag = soup.find("div", {"class": "price_and_no"})
         p_tags = pricing_tag.find_all("p")
         current_price = human_price_to_integer(p_tags[0].strong.text)
@@ -140,7 +121,7 @@ class AntienProductCrawler:
         r = requests.get(link)
         if r.status_code not in (200, 201):
             raise Exception("error getting Antien product " + link)
-        soup = BeautifulSoup(r.text, 'html.parser')
+        soup = BeautifulSoup(r.text, 'lxml')
         product_tag = soup.find("div", {"class": "product-detail-info"})
         
         original_price_tag = product_tag.find("span", {"class": "price product-main-price"})
@@ -166,7 +147,7 @@ class HoangHaProductCrawler:
         r = requests.get(link)
         if r.status_code not in (200, 201):
             raise Exception("error getting HoangHa product " + link)
-        soup = BeautifulSoup(r.text, 'html.parser')
+        soup = BeautifulSoup(r.text, 'lxml')
         pricing_div = soup.find("p", {"class": "price current-product-price"})
         sale_price_tags = pricing_div.strong
         original_price_tags = pricing_div.strike
@@ -197,7 +178,7 @@ class CellphoneProductCrawler:
         r = requests.get(link, headers = headers)
         if r.status_code not in (200, 201):
             raise Exception("error getting Cellphone product " + link)
-        soup = BeautifulSoup(r.text, 'html.parser')
+        soup = BeautifulSoup(r.text, 'lxml')
         pricing_div = soup.find("div", {"class": "box-info__box-price"})
         sale_price_tag = pricing_div.find("p", {"class": "product__price--show"})
         original_price_tag = pricing_div.find("p", {"class": "product__price--through"})
@@ -226,7 +207,7 @@ class LinhAnhProductCrawler:
         r = requests.get(link)
         if r.status_code not in (200, 201):
             raise Exception("error getting LinhAnh product " + link)
-        soup = BeautifulSoup(r.text, 'html.parser')
+        soup = BeautifulSoup(r.text, 'lxml')
         pricing_div = soup.find("div", {"class": "price"})
         price_tag = pricing_div.find("strong")
         original_price = human_price_to_integer(price_tag.text)
@@ -245,7 +226,7 @@ class ViettabletProductCrawler:
         r = requests.get(link)
         if r.status_code not in (200, 201):
             raise Exception("error getting Viettablet product " + link)
-        soup = BeautifulSoup(r.text, 'html.parser')
+        soup = BeautifulSoup(r.text, 'lxml')
         pricing_div = soup.find("span", {"class": "price-num"})
         # Not get original_price
         sale_price = human_price_to_integer(pricing_div.text)
@@ -266,7 +247,7 @@ class CTMobileProductCrawler:
         r = requests.get(link)
         if r.status_code not in (200, 201):
             raise Exception("error getting CTMobile product " + link)
-        soup = BeautifulSoup(r.text, 'html.parser')
+        soup = BeautifulSoup(r.text, 'lxml')
         pricing_div = soup.find("span", {"class": "price"}) # get first
         sale_price = human_price_to_integer(pricing_div.text)
         return Product(original_price=sale_price, sale_price=sale_price, link=link)
@@ -299,11 +280,11 @@ class HaloshopProductCrawler:
         r = requests.get(link)
         if r.status_code not in (200, 201):
             raise Exception("error getting Halo product " + link)
-        soup = BeautifulSoup(r.text, 'html.parser')
+        soup = BeautifulSoup(r.text, 'lxml')
         sale_price_tag = soup.find("div", {"class": "product-price"})
         if sale_price_tag:
             sale_price = human_price_to_integer(sale_price_tag.text)
-            return Product(sale_price, sale_price)
+            return Product(sale_price=sale_price, original_price=sale_price, link=link)
 
         sale_price_tag = soup.find("div", {"class": "product-price-new"})
         original_price_tag = soup.find("div", {"class": "product-price-old"})
@@ -341,7 +322,7 @@ class BachLongProductCrawler:
         r = requests.get(link)
         if r.status_code not in (200, 201):
             raise Exception("error getting Bach Long product " + link)
-        soup = BeautifulSoup(r.text, 'html.parser')
+        soup = BeautifulSoup(r.text, 'lxml')
         price_div = soup.find("div", {"class": "box-title-product"})
         sale_price_tag = price_div.find("span", {"class": "price"})
         original_price_tag = soup.find("span", {"class": "oldprice"})
@@ -392,7 +373,7 @@ class DidongvietProductCrawler:
         if r.status_code not in (200, 201):
             raise Exception("error getting di dong viet product " + link)
         body = r.text
-        return self.get_original_price(body, link)
+        return self.get_original_price(body, body, link)
         #sale_price = self.get_sale_price(body, link)
         #product_in_html = self.get_original_price(body)
 
@@ -401,7 +382,7 @@ class DidongvietProductCrawler:
         #return product_in_html
 
     def get_original_price(self, text, link) -> Product:
-        soup = BeautifulSoup(text, 'html.parser')
+        soup = BeautifulSoup(text, 'lxml')
         price_div = soup.find("span", {"class": "price-container price-final_price tax weee"})
         sale_price_tag = price_div.find("span", {"class": "price"})
         original_price_tag = soup.find("span", {"class": "price-old"})
@@ -475,7 +456,7 @@ class DucHuyMobileProductCrawler:
         matcher = self.PATTERN.search(r.text)
         if not matcher:
             raise Exception("error getting Cellphone product, not found pattern. Link" + link)
-        soup = BeautifulSoup(r.text, 'html.parser')
+        soup = BeautifulSoup(r.text, 'lxml')
         jsonStr = matcher.group(1).strip()
         if jsonStr[-1] == ';':
             jsonStr = jsonStr[:-1]
@@ -486,7 +467,7 @@ class DucHuyMobileProductCrawler:
         sale_price = 0
         if sale_price_tag:
             sale_price = human_price_to_integer(sale_price_tag.text)
-        return Product(sale_price, sale_price, link)
+        return Product(sale_price=sale_price, original_price=sale_price, link=link)
 
 
 class HNamMobileProductCrawler:
@@ -505,7 +486,7 @@ class HNamMobileProductCrawler:
         r = requests.get(link)
         if r.status_code not in (200, 201):
             raise Exception("error getting Hnam product " + link)
-        soup = BeautifulSoup(r.text, 'html.parser')
+        soup = BeautifulSoup(r.text, 'lxml')
         sale_price_tag = soup.find("input", {"class": "product-item-value-price"})
         original_price_tag = soup.find("input", {"class": "product-item-value-price-base"})
         sale_price = human_price_to_integer(sale_price_tag['value'])
@@ -528,7 +509,7 @@ class XTMobileProductCrawler:
         r = requests.get(link)
         if r.status_code not in (200, 201):
             raise Exception("error getting xtmobile product " + link)
-        soup = BeautifulSoup(r.text, 'html.parser')
+        soup = BeautifulSoup(r.text, 'lxml')
         sale_price_tag = soup.find("span", {"itemprop": "price"})
         original_price_tag = soup.find("span", {"class": "price_old"})
         sale_price = human_price_to_integer(sale_price_tag['content'])
@@ -552,7 +533,7 @@ class SangMobileProductCrawler:
         r = requests.get(link)
         if r.status_code not in (200, 201):
             raise Exception("error getting xtmobile product " + link)
-        soup = BeautifulSoup(r.text, 'html.parser')
+        soup = BeautifulSoup(r.text, 'lxml')
         sale_price_tag = soup.find("span", {"class": "current-price ProductPrice"})
         original_price_tag = soup.find("span", {"class": "original-price ComparePrice"})
         sale_price, original_price = 0, 0
@@ -584,7 +565,7 @@ class PhucKhangProductCrawler:
         r = requests.get(link)
         if r.status_code not in (200, 201):
             raise Exception("error getting xtmobile product " + link)
-        soup = BeautifulSoup(r.text, 'html.parser')
+        soup = BeautifulSoup(r.text, 'lxml')
         sale_price_tag = soup.find("span", {"class": "price-buy"})
         original_price_tag = soup.find("span", {"class": "price-vmarket"})
         sale_price, original_price = 0, 0
@@ -663,77 +644,3 @@ class CrawlerGetter:
         if "phuckhangmobile.com" in link:
             return self.CRAWLERS.get("phuckhangmobile.com")
         raise Exception("not found suitable crawler for link {}".format(link))
-
-
-def run():
-    asyncio.run(populate_prices())
-
-
-async def populate_prices():
-    config = configparser.ConfigParser()
-    config.read(os.path.join(os.path.dirname(__file__), 'app.ini'))
-
-    #logging.info(f"Running...")
-    SPREADSHEET_ID = config['DEFAULT']['SPREADSHEET_ID']
-    LINK_RANGE_FORMART = config['DEFAULT']['LINK_RANGE_FORMART']
-    PRICING_RANGE_FORMAT = config['DEFAULT']['PRICING_RANGE_FORMAT']
-    SCOPES = ['https://www.googleapis.com/auth/spreadsheets.edit']
-    LOGGING_SPREADSHEET_ID =  config['DEFAULT']['LOGGING_SPREADSHEET_ID']
-    LOGGING_LOG_RANGE_FORMAT =  config['DEFAULT']['LOGGING_LOG_RANGE_FORMAT']
-    LOGGING_METADATA_RANGE =  config['DEFAULT']['LOGGING_METADATA_RANGE']
-    gsheet_client = GSheetClient(SPREADSHEET_ID, SCOPES)
-    logging_gsheet_client = GSheetClient(LOGGING_SPREADSHEET_ID, SCOPES)
-    sheet_logger = SheetLogger(logging_gsheet_client, LOGGING_METADATA_RANGE, LOGGING_LOG_RANGE_FORMAT)
-
-    crawler_getter = CrawlerGetter()
-    starting_index = 2
-    STEPS = 20
-
-    while True:
-        link_range = LINK_RANGE_FORMART.format(starting_index, starting_index + STEPS)
-        result = gsheet_client.get(link_range)
-        if not result:
-            break
-
-        log_errors = []
-        tasks = []
-        values = []
-        for row in result:
-            if len(row) == 0:
-                tasks.append(asyncio.create_task(empty()))
-                continue
-            link = row[0]
-            crawler = crawler_getter.get_crawler(link)
-            tasks.append(asyncio.create_task(crawler.get_price(link)))
-
-        products = await asyncio.gather(*tasks, return_exceptions=True)
-        for product in products:
-            if product is None:
-                values.append([])
-            elif isinstance(product, Product):
-                values.append([product.sale_price, product.original_price])
-            else:
-                e = product
-                log_info = LogInfo("", str(e), datetime.now())
-                log_errors.append(log_info)
-                #logging.error("error crawling {}".format(str(e)))
-                values.append([0,0])
-
-        pricing_range = PRICING_RANGE_FORMAT.format(starting_index, starting_index + STEPS)
-        gsheet_client.update(pricing_range, values) 
-        sheet_logger.log(log_errors)
-        starting_index += STEPS
-    #logging.info("Done")
-
-
-async def empty():
-    return None
-
-
-def setup():
-    logging.basicConfig(format='%(asctime)s %(levelname)s:%(message)s', filename='app.log', filemode='a', level=logging.INFO)
-
-
-if __name__ == "__main__":
-    #setup()
-    run()

@@ -2,22 +2,23 @@ from pricing import *
 from datetime import datetime
 import asyncio
 
+
 def test():
     test_coroutines_wrapper()
 
 
 def test_coroutines_wrapper():
-    #asyncio.run(test_antien())
-    #asyncio.run(test_cellphones())
-    #asyncio.run(test_minhtuan())
-    #asyncio.run(test_ducthuy())
-    #asyncio.run(test_hnam())
-    #asyncio.run(test_xtmobile())
-    #asyncio.run(test_baochau())
-    #asyncio.run(test_sangmobile())
-    asyncio.run(test_phuckhang())
-    #asyncio.run(test_viettablet())
-    #asyncio.run(test_didongviet())
+    # asyncio.run(test_antien())
+    asyncio.run(test_cellphones())
+    # asyncio.run(test_minhtuan())
+    # asyncio.run(test_ducthuy())
+    # asyncio.run(test_hnam())
+    # asyncio.run(test_xtmobile())
+    # asyncio.run(test_baochau())
+    # asyncio.run(test_sangmobile())
+    # asyncio.run(test_phuckhang())
+    # asyncio.run(test_viettablet())
+    # asyncio.run(test_didongviet())
 
 
 async def test_coroutines(*tasks):

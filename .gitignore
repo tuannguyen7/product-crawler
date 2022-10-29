@@ -134,3 +134,7 @@ dmypy.json
 # credentials
 credentials.json
 token.pickle
+*-service-account.json
+
+# Pycharm
+.idea/
