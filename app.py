@@ -39,15 +39,23 @@ def setup():
 
 def prepare():
     bq_client = BQClient(project=configuration.config['DEFAULT']['BIGQUERY_PROJECT'])
-    schema = [
+    presync_schem = [
+        bigquery.SchemaField("link", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("sale_price", "INT64"),
+        bigquery.SchemaField("original_price", "INT64"),
+        #bigquery.SchemaField("_updated_at", "TIMESTAMP", mode="REQUIRED"),
+        #bigquery.SchemaField("_created_at", "TIMESTAMP", mode="REQUIRED"),
+        #bigquery.SchemaField("_date", "DATE", mode="REQUIRED")
+    ]
+    main_schem = [
         bigquery.SchemaField("link", "STRING", mode="REQUIRED"),
         bigquery.SchemaField("sale_price", "INT64"),
         bigquery.SchemaField("original_price", "INT64"),
         bigquery.SchemaField("_updated_at", "TIMESTAMP", mode="REQUIRED"),
         bigquery.SchemaField("_date", "DATE", mode="REQUIRED")
     ]
-    #bq_client.create_presync_table("pre_sync", "competitor_price", schema)
-    bq_client.create_table("staging", "competitor_price", schema)
+    bq_client.create_presync_table("pre_sync", "competitor_price", presync_schem)
+    #bq_client.create_table("staging", "competitor_price", schema)
 
 
 if __name__ == "__main__":
