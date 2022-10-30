@@ -94,8 +94,6 @@ class StreamingService:
                         logging.warning(f"product is not recognized {product}")
 
                 start_index += STEPS
-                if start_index > 30:
-                    break
         except Exception:
             logging.exception("error while crawling price")
 
