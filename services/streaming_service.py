@@ -107,7 +107,7 @@ class StreamingService:
         id_columns = ["link"]
         columns_update = ["original_price", "sale_price"]
         columns_insert = ["link", "original_price", "sale_price", "_date"]
-        sql = self._get_merge_query(dest_table="`staging.competitor_price2`",
+        sql = self._get_merge_query(dest_table="`staging.competitor_price`",
                                     source_table="`pre_sync.competitor_price`", id_columns=id_columns,
                                     columns_update=columns_update, columns_insert=columns_insert)
         job = self.bq_client.query(sql)

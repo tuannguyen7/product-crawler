@@ -47,7 +47,7 @@ def prepare():
         bigquery.SchemaField("_date", "DATE", mode="REQUIRED")
     ]
     #bq_client.create_presync_table("pre_sync", "competitor_price", schema)
-    bq_client.create_table("staging", "competitor_price2", schema)
+    bq_client.create_table("staging", "competitor_price", schema)
 
 
 if __name__ == "__main__":
