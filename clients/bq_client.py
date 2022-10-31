@@ -2,6 +2,7 @@ from datetime import datetime, date
 
 from google.cloud import bigquery
 from typing import List
+from pytz import timezone
 import logging
 
 from google.cloud.bigquery import DatasetReference
@@ -14,6 +15,7 @@ class BQClient:
     def __init__(self, project: str):
         self.project = project
         self.client = bigquery.Client(project=project)
+        self.hcm_timezone = timezone("Asia/Ho_Chi_Minh")
 
     def create_presync_table(self, dataset: str, table_name: str, schema: List[bigquery.SchemaField]):
         schema.insert(0, bigquery.SchemaField("_created_at", "TIMESTAMP", mode="REQUIRED"))
@@ -45,11 +47,11 @@ class BQClient:
         dataset_ref = DatasetReference(project=self.project, dataset_id=dataset)
         table_ref = dataset_ref.table(table_name)
         table = self.client.get_table(table_ref)
-        today = date.today()
-        current_timestamp = datetime.now()
+        hcm_now = datetime.now(self.hcm_timezone)
+        today = hcm_now.date()
         rows = []
         for p in products:
-            rows.append({"_date": today, "_created_at": current_timestamp, "link": p.link, "original_price": p.original_price, "sale_price": p.sale_price})
+            rows.append({"_date": today, "_created_at": hcm_now, "link": p.link, "original_price": p.original_price, "sale_price": p.sale_price})
         errors = self.client.insert_rows(table=table, rows=rows)
 
         if not errors:
