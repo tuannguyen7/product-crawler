@@ -104,7 +104,7 @@ class StreamingService:
             logging.exception("error during inserting and merging products")
 
     def merge_product(self):
-        id_columns = ["link"]
+        id_columns = ["link", "_date"]
         columns_update = ["original_price", "sale_price"]
         columns_insert = ["link", "original_price", "sale_price", "_date"]
         sql = self._get_merge_query(dest_table="`staging.competitor_price`",
