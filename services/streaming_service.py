@@ -28,7 +28,7 @@ class StreamingService:
     def _get_merge_query(self, source_table, dest_table, id_columns: List[str], columns_update: List[str],
                          columns_insert: List[str]) -> str:
         id_columns_select = ",".join(id_columns)
-        ids_matching_stmt = ",".join(map(lambda col: f"T.{col} = S.{col}", id_columns))
+        ids_matching_stmt = " AND ".join(map(lambda col: f"T.{col} = S.{col}", id_columns))
         columns_update_stmt = ",".join(map(lambda col: f"T.{col} = S.{col}", columns_update))
         columns_insert_stmt = ",".join(columns_insert)
         columns_insert_assigment_stmt = ",".join(map(lambda col: f"S.{col}", columns_insert))
