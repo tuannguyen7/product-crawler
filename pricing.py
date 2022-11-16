@@ -63,9 +63,20 @@ class M24hProductCrawler:
         if r.status_code not in (200, 201):
             raise Exception("error getting 24h product " + link)
         soup = BeautifulSoup(r.text, 'lxml')
-        original_price_tag = soup.find(id="data_price_old")
-        sale_price_tag = soup.find(id="data_price")
-        return Product(original_price=int(original_price_tag["value"]), sale_price=int(sale_price_tag["value"]), link=link)
+        price_div = soup.find("div", {"class": "price_ins"})
+        if not price_div:
+            raise Exception(f"error getting m24 product, not found price_ins class, link: {link}")
+
+        original_price_tag = price_div.find("span", {"class": "_price"})
+        if not original_price_tag:
+            raise Exception(f"error getting m24 product, not found span _price class, link: {link}")
+        original_price = human_price_to_integer(original_price_tag.text)
+        sale_price_tag = price_div.find("span", {"class": "price_old"})
+        sale_price = original_price
+        if sale_price_tag:
+            sale_price = human_price_to_integer(sale_price_tag.text)
+
+        return Product(original_price=original_price, sale_price=sale_price, link=link)
 
 
 # Dien thoai gia kho

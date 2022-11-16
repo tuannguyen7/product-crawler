@@ -9,7 +9,7 @@ def test():
 
 def test_coroutines_wrapper():
     # asyncio.run(test_antien())
-    asyncio.run(test_cellphones())
+    #asyncio.run(test_cellphones())
     # asyncio.run(test_minhtuan())
     # asyncio.run(test_ducthuy())
     # asyncio.run(test_hnam())
@@ -19,6 +19,7 @@ def test_coroutines_wrapper():
     # asyncio.run(test_phuckhang())
     # asyncio.run(test_viettablet())
     # asyncio.run(test_didongviet())
+    asyncio.run(test_24hstore())
 
 
 async def test_coroutines(*tasks):
@@ -239,6 +240,18 @@ async def test_phuckhang():
     task_queue.append(asyncio.create_task(crawler.get_price(link1)))
     task_queue.append(asyncio.create_task(crawler.get_price(link2)))
     task_queue.append(asyncio.create_task(crawler.get_price(link3)))
+    done = await asyncio.gather(*task_queue)
+    for done_task in done:
+        print(done_task)
+
+
+async def test_24hstore():
+    link1 = 'https://24hstore.vn/iphone-14-pro-moi/iphone-14-pro-512gb-p6625'
+    link2 = 'https://24hstore.vn/op-lung-iphone-chinh-hang/op-lung-da-iphone-14-pro-voi-magsafe-p6682'
+    crawler = M24hProductCrawler()
+    task_queue = []
+    task_queue.append(asyncio.create_task(crawler.get_price(link1)))
+    task_queue.append(asyncio.create_task(crawler.get_price(link2)))
     done = await asyncio.gather(*task_queue)
     for done_task in done:
         print(done_task)
