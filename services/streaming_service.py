@@ -62,24 +62,32 @@ class StreamingService:
 
         crawler_getter = CrawlerGetter()
         start_index = 2
-        STEPS = 20
+        STEPS = 100
         valid_products = []
 
         try:
             while True:
                 link_range = LINK_RANGE_FORMART.format(start_index, start_index + STEPS)
                 result = self.gsheet_client.get(link_range)
-                if not result:
+                if not result: # if all rows are empty, we will consider the reading sheet as ended
                     break
 
                 tasks = []
                 for row in result:
                     if len(row) == 0:
+                        # append empty task to make sure len(tasks) = len(result)
                         tasks.append(asyncio.create_task(self.empty()))
                         continue
                     link = row[0]
-                    crawler = crawler_getter.get_crawler(link)
-                    tasks.append(asyncio.create_task(crawler.get_price(link)))
+                    if not link:
+                        # skip empty
+                        continue
+
+                    try:
+                        crawler = crawler_getter.get_crawler(link)
+                        tasks.append(asyncio.create_task(crawler.get_price(link)))
+                    except Exception as e:
+                        logging.exception(f"error getting crawler for link {link}")
 
                 start = time.time()
                 products = await asyncio.gather(*tasks, return_exceptions=True)
@@ -98,8 +106,11 @@ class StreamingService:
             logging.exception("error while crawling price")
 
         try:
-            self.bq_client.insert_product(dataset="pre_sync", table_name="competitor_price", products=valid_products)
-            self.merge_product()
+            if valid_products:
+                self.bq_client.insert_product(dataset="pre_sync", table_name="competitor_price", products=valid_products)
+                self.merge_product()
+
+            logging.info(f"products have been inserted to BQ, number of products {len(valid_products)}")
         except Exception:
             logging.exception("error during inserting and merging products")
 
@@ -120,3 +131,4 @@ class StreamingService:
 
     async def empty(self):
         return None
+
